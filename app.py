@@ -4,7 +4,7 @@ import sqlalchemy
 from sqlalchemy.ext.automap import automap_base
 from sqlalchemy.orm import Session
 from sqlalchemy import create_engine, func
-
+import datetime as dt
 from flask import Flask, jsonify
 
 
@@ -48,6 +48,8 @@ def welcome():
 
 @app.route("/api/v1.0/precipitation")
 def precipitation():
+    session = Session(engine)
+
     """Return the precipitation data for the last year"""
     # Calculate the date 1 year ago from last date in database
     prev_year = dt.date(2017, 8, 23) - dt.timedelta(days=365)
@@ -63,6 +65,7 @@ def precipitation():
 
 @app.route("/api/v1.0/stations")
 def stations():
+    session = Session(engine)
     """Return a list of stations."""
     results = session.query(Station.station).all()
 
@@ -73,6 +76,7 @@ def stations():
 
 @app.route("/api/v1.0/tobs")
 def temp_monthly():
+    session = Session(engine)
     """Return the temperature observations (tobs) for previous year."""
     # Calculate the date 1 year ago from last date in database
     prev_year = dt.date(2017, 8, 23) - dt.timedelta(days=365)
@@ -91,19 +95,12 @@ def temp_monthly():
 
 @app.route("/api/v1.0/temp/<start>")
 @app.route("/api/v1.0/temp/<start>/<end>")
-def stats(start=None, end=None):
+def stats(start=None, end='2017-8-23'):
     """Return TMIN, TAVG, TMAX."""
+    session = Session(engine)
 
     # Select statement
     sel = [func.min(Measurement.tobs), func.avg(Measurement.tobs), func.max(Measurement.tobs)]
-
-    if not end:
-        # calculate TMIN, TAVG, TMAX for dates greater than start
-        results = session.query(*sel).\
-            filter(Measurement.date >= start).all()
-        # Unravel results into a 1D array and convert to a list
-        temps = list(np.ravel(results))
-        return jsonify(temps)
 
     # calculate TMIN, TAVG, TMAX with start and stop
     results = session.query(*sel).\
